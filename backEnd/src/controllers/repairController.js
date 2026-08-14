@@ -31,7 +31,8 @@ async function processImage(imageStr, prefix = 'repair') {
     const filePath = path.join(UPLOAD_DIR, filename);
     const compressedBuffer = await image.getBuffer('image/jpeg');
     fs.writeFileSync(filePath, compressedBuffer);
-    return `http://localhost:4000/uploads/${filename}`;
+    const baseUrl = process.env.BACKEND_URL || 'http://localhost:4000';
+    return `${baseUrl}/uploads/${filename}`;
   } catch (err) {
     console.error('Image processing error in repair controller:', err.message);
     return imageStr;

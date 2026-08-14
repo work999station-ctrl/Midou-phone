@@ -25,7 +25,8 @@ async function processImagesArray(images, productIdPrefix = 'shop') {
           const filePath = path.join(UPLOAD_DIR, filename);
           const compressedBuffer = await image.getBuffer('image/jpeg');
           fs.writeFileSync(filePath, compressedBuffer);
-          processed.push(`http://localhost:4000/uploads/${filename}`);
+          const baseUrl = process.env.BACKEND_URL || 'http://localhost:4000';
+          processed.push(`${baseUrl}/uploads/${filename}`);
           continue;
         }
       } catch (err) {
