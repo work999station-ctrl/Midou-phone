@@ -32,7 +32,7 @@ export default function AdminDashboard() {
   // Fetch today's revenue summary
   const fetchRevenue = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}//api/dashboard/revenue?date=${dashboardDate}`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/dashboard/revenue?date=${dashboardDate}`);
       if (!res.ok) throw new Error('Failed to fetch revenue');
       const data = await res.json();
       setRevenueData(data);
@@ -71,7 +71,7 @@ export default function AdminDashboard() {
   const fetchTopSelling = async () => {
     setLoadingTopSelling(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}//api/dashboard/top-selling?date=${dashboardDate}`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/dashboard/top-selling?date=${dashboardDate}`);
       if (!res.ok) throw new Error('Failed to fetch top selling');
       const data = await res.json();
       setTopSelling(data);

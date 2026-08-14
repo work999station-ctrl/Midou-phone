@@ -53,7 +53,7 @@ export default function ProductDetail() {
   const [addedNotice, setAddedNotice] = useState(false);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}//api/products/${id}`)
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/products/${id}`)
       .then((res) => {
         if (!res.ok) throw new Error('Product not found');
         return res.json();

@@ -148,7 +148,7 @@ export default function Admin() {
     const combinedNotes = `Email: ${parsed.email} | Include screen protector: ${parsed.protector} | Notes: ${editNotesText}`;
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}//api/repairs/tickets/${activeTicket._id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/repairs/tickets/${activeTicket._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

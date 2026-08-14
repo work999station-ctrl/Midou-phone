@@ -315,12 +315,12 @@ export default function AdminSales() {
     setIsDeleting(true);
     try {
       // Attempt internal storage deletion first
-      let res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}//api/internal-storage/${productId}`, {
+      let res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/internal-storage/${productId}`, {
         method: 'DELETE'
       });
       // Fallback to public products catalog if not found in internal storage
       if (!res.ok) {
-        res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}//api/products/${productId}`, {
+        res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/products/${productId}`, {
           method: 'DELETE'
         });
       }

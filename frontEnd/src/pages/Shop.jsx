@@ -450,7 +450,7 @@ export default function Shop() {
       const isEditing = Boolean(editingProductId);
       const response = await fetch(
         isEditing
-          ? `${import.meta.env.VITE_API_URL || 'http://localhost:4000'}//api/products/${editingProductId}`
+          ? `${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/products/${editingProductId}`
           : (import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/products',
         {
           method: isEditing ? 'PUT' : 'POST',
@@ -567,7 +567,7 @@ export default function Shop() {
     setMarkingSoldId(product._id);
     const newStock = product.stock === 0 ? 1 : 0;
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}//api/products/${product._id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/products/${product._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stock: newStock })
@@ -591,7 +591,7 @@ export default function Shop() {
     setTogglingAvailabilityId(product._id);
     const newAvailable = product.isAvailable === false ? true : false;
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}//api/products/${product._id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/products/${product._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isAvailable: newAvailable })
@@ -622,7 +622,7 @@ export default function Shop() {
     const product = deleteConfirmProduct;
     setDeletingId(product._id);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}//api/products/${product._id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/products/${product._id}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' }
       });

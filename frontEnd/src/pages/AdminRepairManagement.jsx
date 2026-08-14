@@ -261,7 +261,7 @@ export default function AdminRepairManagement() {
     const nextStatus = ticket.status === 'Ready for Pickup' ? 'Completed' : 'Ready for Pickup';
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}//api/repairs/tickets/${ticket._id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/repairs/tickets/${ticket._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
         body: JSON.stringify({ status: nextStatus })
@@ -292,7 +292,7 @@ export default function AdminRepairManagement() {
     const ticket = deleteConfirm;
     setDeleteConfirm(null);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}//api/repairs/tickets/${ticket._id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/repairs/tickets/${ticket._id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${adminToken}` }
       });
@@ -329,7 +329,7 @@ export default function AdminRepairManagement() {
 
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}//api/repairs/tickets/${activeTicket._id}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/repairs/tickets/${activeTicket._id}`, {
           headers: {
             'Authorization': `Bearer ${adminToken}`
           }
@@ -371,7 +371,7 @@ export default function AdminRepairManagement() {
     setIsSendingMessage(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}//api/repairs/tickets/${activeTicket._id}/messages`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/repairs/tickets/${activeTicket._id}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -409,7 +409,7 @@ export default function AdminRepairManagement() {
     const combinedNotes = `Email: ${parsed.email} | Include screen protector: ${parsed.protector} | Notes: ${editNotesText}`;
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}//api/repairs/tickets/${activeTicket._id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/repairs/tickets/${activeTicket._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

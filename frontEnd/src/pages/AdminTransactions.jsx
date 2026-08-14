@@ -201,7 +201,7 @@ export default function AdminTransactions() {
     if (!edits) return;
     setEditingProduct((prev) => ({ ...prev, [id]: { ...edits, saving: true } }));
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}//api/internal-storage/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/internal-storage/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -390,7 +390,7 @@ export default function AdminTransactions() {
   const handleDeleteTransaction = async (id) => {
     if (!window.confirm('Are you sure you want to delete this transaction?')) return;
     try {
-      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}//api/transactions/${id}`, { method: 'DELETE' });
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/transactions/${id}`, { method: 'DELETE' });
       fetchTransactions();
       fetchProducts();
     } catch (err) {

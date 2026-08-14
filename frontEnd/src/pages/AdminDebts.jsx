@@ -45,7 +45,7 @@ export default function AdminDebts() {
     }
     setSavingPriceId(debtId);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}//api/debts/${debtId}/price`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/debts/${debtId}/price`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ price: newVal })
@@ -176,7 +176,7 @@ export default function AdminDebts() {
     setActionId(debt._id);
     const newStatus = debt.status === 'Unpaid' ? 'Paid' : 'Unpaid';
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}//api/debts/${debt._id}/status`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/debts/${debt._id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
@@ -198,7 +198,7 @@ export default function AdminDebts() {
     if (!window.confirm('Are you sure you want to delete this debt record?')) return;
     setActionId(debtId);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}//api/debts/${debtId}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/debts/${debtId}`, {
         method: 'DELETE'
       });
       if (!res.ok) throw new Error('Failed to delete debt');

@@ -142,7 +142,7 @@ export default function RepairTrack() {
     const queryParam = `query=${encodeURIComponent(val)}&${type === 'ticketId' ? 'ticketId' : 'customerPhone'}=${encodeURIComponent(val)}`;
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}//api/repairs/track?${queryParam}`);
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/repairs/track?${queryParam}`);
       if (!response.ok) {
         throw new Error('Failed to fetch repair details.');
       }
@@ -192,7 +192,7 @@ export default function RepairTrack() {
 
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}//api/repairs/track?ticketId=${encodeURIComponent(activeTicket.ticketId)}`);
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/repairs/track?ticketId=${encodeURIComponent(activeTicket.ticketId)}`);
         if (response.ok) {
           const data = await response.json();
           if (data && data.length > 0) {
