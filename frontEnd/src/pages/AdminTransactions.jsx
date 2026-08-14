@@ -221,6 +221,16 @@ export default function AdminTransactions() {
     }
   };
 
+  const handleDeleteProduct = async (id) => {
+    if (!window.confirm('Are you sure you want to completely delete this product from storage?')) return;
+    try {
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/internal-storage/${id}`, { method: 'DELETE' });
+      fetchProducts();
+    } catch (err) {
+      console.error('Failed to delete product', err);
+    }
+  };
+
   const handleCheckoutPOS = async () => {
     if (cart.length === 0) return;
     setSubmitting(true);
@@ -641,6 +651,17 @@ export default function AdminTransactions() {
                           >
                             <span className="material-symbols-outlined text-[15px]">{isEditing ? 'close' : 'edit'}</span>
                           </button>
+
+                          {/* Delete button */}
+                          {!isEditing && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleDeleteProduct(product._id); }}
+                              className="absolute top-3 right-11 w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer border-none bg-white/5 text-on-surface-variant hover:bg-red-500/20 hover:text-red-400 opacity-0 group-hover:opacity-100"
+                              title="Delete product"
+                            >
+                              <span className="material-symbols-outlined text-[15px]">delete</span>
+                            </button>
+                          )}
 
                           <div className="flex items-start gap-4">
                             <div 
