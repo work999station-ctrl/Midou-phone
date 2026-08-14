@@ -1,0 +1,259 @@
+/**
+ * POST /api/ai/specs
+ * Body: { productName: "Poco X3 Pro 8/256" }
+ * Returns: { specs: "...", description: "..." }
+ *
+ * Powered by Google Gemini API / Groq LLM API
+ */
+exports.generateSpecs = async (req, res) => {
+  const { productName, apiKey: userProvidedApiKey } = req.body;
+
+  if (!productName || productName.trim().length < 2) {
+    return res.status(400).json({ message: 'Product name is required.' });
+  }
+
+  const geminiApiKey = userProvidedApiKey || process.env.GEMINI_API_KEY;
+  const groqApiKey = process.env.GROQ_API_KEY;
+
+  const prompt = `You are a professional electronics tech spec writer.
+Given the device name: "${productName.trim()}", generate a comprehensive, accurate technical spec sheet based on your knowledge.
+
+Return ONLY a plain text block with specs in this EXACT format (key: value, one per line):
+Display Type: <value>
+Display Size: <value>
+Display Resolution: <value>
+Display Protection: <value>
+OS: <value>
+Chipset: <value>
+CPU: <value>
+GPU: <value>
+Main Camera: <value>
+Camera Features: <value>
+Selfie Camera: <value>
+Battery Capacity: <value>
+Charging: <value>
+NFC: <value>
+USB: <value>
+Bluetooth: <value>
+Wi-Fi: <value>
+SIM: <value>
+Colors: <value>
+Dimensions: <value>
+Weight: <value>
+
+Do NOT include RAM or Storage lines as they will be specified manually by the user.
+
+Then on a new line write exactly this separator: ---DESCRIPTION---
+Then write a single concise paragraph product description suitable for a shop listing.
+
+Do not include any markdown, headers, asterisks, or extra formatting. Only the plain text spec list and description.`;
+
+  try {
+    let responseText = '';
+
+    // 1. Try Gemini API if key is available
+    if (geminiApiKey) {
+      try {
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey.trim()}`;
+        const response = await fetch(geminiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }]
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        } else {
+          console.warn('[Gemini API warning]', await response.text());
+        }
+      } catch (geminiErr) {
+        console.warn('[Gemini API error, falling back to Groq]', geminiErr.message);
+      }
+    }
+
+    // 2. Fallback to Groq API if Gemini produced no text
+    if (!responseText && groqApiKey) {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${groqApiKey.trim()}`
+        },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.2
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        responseText = data.choices?.[0]?.message?.content || '';
+      } else {
+        const errText = await response.text();
+        throw new Error(`Groq API request failed (${response.status}): ${errText}`);
+      }
+    }
+
+    if (!responseText) {
+      throw new Error('No AI provider available or valid response returned. Check your API key in .env file.');
+    }
+
+    // Split on separator
+    const parts = responseText.trim().split('---DESCRIPTION---');
+    let specsRaw = (parts[0] || '').trim();
+    const description = (parts[1] || '').trim();
+
+    // Filter out any auto-generated RAM/Storage values and prepend blank RAM: & Storage: keys at top
+    specsRaw = specsRaw
+      .split('\n')
+      .filter((line) => {
+        const lower = line.toLowerCase().trim();
+        return !lower.startsWith('ram:') && !lower.startsWith('storage:');
+      })
+      .join('\n');
+
+    // Place RAM: and Storage: keys at the top so user can fill them
+    specsRaw = `RAM: \nStorage: \n${specsRaw}`;
+
+    res.status(200).json({ specs: specsRaw, description });
+  } catch (err) {
+    console.error('[AI Specs Error]', err.message);
+    res.status(500).json({ message: err.message || 'Failed to generate specs.' });
+  }
+};
+
+/**
+ * POST /api/ai/analyze-image
+ * Body: { imageBase64: "data:image/png;base64,..." }
+ * Returns: { productName: "...", specs: "...", description: "..." }
+ *
+ * Uses Groq vision model to identify the product from the image
+ * and generate a complete spec sheet automatically.
+ */
+exports.analyzeProductImage = async (req, res) => {
+  const { imageBase64 } = req.body;
+
+  if (!imageBase64 || !imageBase64.startsWith('data:image/')) {
+    return res.status(400).json({ message: 'A valid base64 image is required.' });
+  }
+
+  const apiKey = process.env.NVIDIA_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ message: 'NVIDIA_API_KEY is not configured in the server.' });
+  }
+
+  const visionPrompt = `You are an expert electronics product analyst with deep knowledge of smartphones, tablets, wearables, and accessories.
+
+Look at this product image carefully and:
+1. Identify the exact device model (brand, model name, variant if visible)
+2. Generate a comprehensive technical spec sheet
+
+Return your response in this EXACT plain text format with no markdown, no asterisks, no headers:
+
+PRODUCT_NAME: <exact identified model name, e.g. "Samsung Galaxy S24 Ultra">
+---SPECS---
+Display Type: <value>
+Display Size: <value>
+Display Resolution: <value>
+Display Protection: <value>
+OS: <value>
+Chipset: <value>
+CPU: <value>
+GPU: <value>
+RAM: <value>
+Storage: <value>
+Main Camera: <value>
+Camera Features: <value>
+Selfie Camera: <value>
+Battery Capacity: <value>
+Charging: <value>
+NFC: <value>
+USB: <value>
+Bluetooth: <value>
+Wi-Fi: <value>
+SIM: <value>
+Colors: <value>
+Dimensions: <value>
+Weight: <value>
+---DESCRIPTION---
+<one concise paragraph suitable for a shop product listing>
+
+If you cannot identify the exact model, make your best estimate based on visible design elements. Never leave a field blank — use "N/A" if truly unknown.`;
+
+  try {
+    const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey.trim()}`
+      },
+      body: JSON.stringify({
+        model: 'meta/llama-3.2-90b-vision-instruct',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: visionPrompt
+              },
+              {
+                type: 'image_url',
+                image_url: { url: imageBase64 }
+              }
+            ]
+          }
+        ],
+        temperature: 0.2,
+        max_tokens: 1024
+      })
+    });
+
+    if (!response.ok) {
+      const errBody = await response.text();
+      const error = new Error(`NVIDIA vision request failed with status ${response.status}: ${errBody}`);
+      error.status = response.status;
+      throw error;
+    }
+
+    const data = await response.json();
+    const rawText = (data.choices?.[0]?.message?.content || '').trim();
+
+    // Parse PRODUCT_NAME
+    const nameMatch = rawText.match(/PRODUCT_NAME:\s*(.+)/i);
+    const productName = nameMatch ? nameMatch[1].trim() : '';
+
+    // Parse specs block
+    const specsPart = rawText.split('---SPECS---')[1] || '';
+    const specsRaw = (specsPart.split('---DESCRIPTION---')[0] || '').trim();
+
+    // Parse description block
+    const descPart = rawText.split('---DESCRIPTION---')[1] || '';
+    const description = descPart.trim();
+
+    res.status(200).json({ productName, specs: specsRaw, description });
+  } catch (err) {
+    console.error('[AI Vision Error]', err.message);
+
+    if (err.status === 429) {
+      return res.status(429).json({
+        message: 'AI quota exceeded. Please wait a moment and try again.',
+        error: err.message
+      });
+    }
+
+    if (err.status === 401 || err.status === 403) {
+      return res.status(401).json({
+        message: 'Invalid NVIDIA API key configured on the server.',
+        error: err.message
+      });
+    }
+
+    res.status(500).json({ message: 'Failed to analyze image. Check API key or try again.', error: err.message });
+  }
+};
+
