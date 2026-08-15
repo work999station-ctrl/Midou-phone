@@ -249,6 +249,9 @@ export default function Home() {
                   alt={item.name} 
                   className="w-full h-full object-cover mix-blend-luminosity opacity-50 group-hover:opacity-80 transition-opacity duration-300"
                   src={item.images && item.images[0] ? item.images[0] : 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=300&auto=format&fit=crop'}
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=300&auto=format&fit=crop';
+                  }}
                 />
               </div>
               <div className="flex justify-between items-center mb-2">

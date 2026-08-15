@@ -181,9 +181,12 @@ export default function ProductDetail() {
               )}
 
               <img
-                src={activeImage}
+                src={activeImage || 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=300&auto=format&fit=crop'}
                 alt={product.name}
                 className="max-h-full max-w-full object-contain drop-shadow-2xl transition-all duration-300"
+                onError={(e) => {
+                  e.currentTarget.src = 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=300&auto=format&fit=crop';
+                }}
               />
             </div>
 
@@ -200,7 +203,14 @@ export default function ProductDetail() {
                         : 'border-white/10 opacity-60 hover:opacity-100'
                     }`}
                   >
-                    <img src={imgSrc} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-contain" />
+                    <img 
+                      src={imgSrc} 
+                      alt={`Thumbnail ${idx + 1}`} 
+                      className="w-full h-full object-contain" 
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=300&auto=format&fit=crop';
+                      }}
+                    />
                   </button>
                 ))}
               </div>

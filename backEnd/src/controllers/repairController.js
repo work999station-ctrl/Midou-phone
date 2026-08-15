@@ -10,10 +10,10 @@ if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
-// Helper to save base64 image to disk and return static URL
-async function processImage(imageStr, prefix = 'repair') {
+// Helper to optimize and store base64 image directly in MongoDB
+async function processImage(imageStr) {
   if (!imageStr || typeof imageStr !== 'string') return imageStr || '';
-  if (imageStr.startsWith('http://') || imageStr.startsWith('https://') || imageStr.startsWith('/uploads/')) {
+  if (imageStr.startsWith('http://') || imageStr.startsWith('https://')) {
     return imageStr;
   }
   if (!imageStr.startsWith('data:image')) {
@@ -27,12 +27,8 @@ async function processImage(imageStr, prefix = 'repair') {
     const buffer = Buffer.from(matches[2], 'base64');
     const image = await Jimp.read(buffer);
     image.scaleToFit({ w: 400, h: 400 });
-    const filename = `${prefix}_${Date.now()}.jpg`;
-    const filePath = path.join(UPLOAD_DIR, filename);
     const compressedBuffer = await image.getBuffer('image/jpeg');
-    fs.writeFileSync(filePath, compressedBuffer);
-    const baseUrl = process.env.BACKEND_URL || 'http://localhost:4000';
-    return `${baseUrl}/uploads/${filename}`;
+    return `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
   } catch (err) {
     console.error('Image processing error in repair controller:', err.message);
     return imageStr;
@@ -73,7 +69,7 @@ exports.bookRepair = async (req, res) => {
       screenDisplayPrice
     } = req.body;
 
-    const processedImage = deviceImage ? await processImage(deviceImage, 'repair') : '';
+    const processedImage = deviceImage ? await processImage(deviceImage) : '';
 
     const ticket = new RepairTicket({
       customerName,
@@ -233,7 +229,7 @@ exports.updateTicketStatus = async (req, res) => {
     if (deviceBrand !== undefined) ticket.deviceBrand = deviceBrand;
     if (deviceModel !== undefined) ticket.deviceModel = deviceModel;
     if (deviceImage !== undefined) {
-      ticket.deviceImage = deviceImage ? await processImage(deviceImage, `repair_${ticket._id}`) : '';
+      ticket.deviceImage = deviceImage ? await processImage(deviceImage) : '';
     }
     if (issue !== undefined) ticket.issue = issue;
     if (screenDisplayPrice !== undefined) ticket.screenDisplayPrice = screenDisplayPrice;

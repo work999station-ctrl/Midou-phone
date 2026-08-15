@@ -1114,6 +1114,9 @@ export default function Shop() {
                       alt={item.name}
                       className="max-h-full w-full object-contain drop-shadow-2xl transition-transform duration-500 group-hover:scale-110"
                       src={item.images && item.images[0] ? item.images[0] : 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=300&auto=format&fit=crop'}
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=300&auto=format&fit=crop';
+                      }}
                     />
                   </div>
                   

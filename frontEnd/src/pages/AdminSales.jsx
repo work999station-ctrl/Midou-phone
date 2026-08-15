@@ -655,7 +655,15 @@ export default function AdminSales() {
                         <div className="flex items-center gap-3">
                           <div className="w-12 h-12 rounded-lg bg-surface-container border border-white/10 overflow-hidden shrink-0 flex items-center justify-center">
                             {img ? (
-                              <img src={img} alt={item.product.name} className="w-full h-full object-cover" />
+                              <img 
+                                src={img} 
+                                alt={item.product.name} 
+                                className="w-full h-full object-cover" 
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                  if (e.target.nextSibling) e.target.nextSibling.style.display = 'block';
+                                }}
+                              />
                             ) : (
                               <span className="material-symbols-outlined text-outline">inventory_2</span>
                             )}

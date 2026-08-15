@@ -8,8 +8,8 @@ if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
-// Helper to save base64 image to disk and return static URL
-async function processImagesArray(images, productIdPrefix = 'prod') {
+// Helper to optimize and store base64 image directly in MongoDB
+async function processImagesArray(images) {
   if (!Array.isArray(images) || images.length === 0) return images || [];
   const processed = [];
   for (let i = 0; i < images.length; i++) {
@@ -20,17 +20,14 @@ async function processImagesArray(images, productIdPrefix = 'prod') {
         if (matches && matches.length === 3) {
           const buffer = Buffer.from(matches[2], 'base64');
           const image = await Jimp.read(buffer);
-          image.scaleToFit({ w: 250, h: 250 });
-          const filename = `${productIdPrefix}_${Date.now()}_${i}.jpg`;
-          const filePath = path.join(UPLOAD_DIR, filename);
+          image.scaleToFit({ w: 300, h: 300 });
           const compressedBuffer = await image.getBuffer('image/jpeg');
-          fs.writeFileSync(filePath, compressedBuffer);
-          const baseUrl = process.env.BACKEND_URL || 'http://localhost:4000';
-          processed.push(`${baseUrl}/uploads/${filename}`);
+          const base64Data = `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
+          processed.push(base64Data);
           continue;
         }
       } catch (err) {
-        console.error('Image processing error in controller:', err.message);
+        console.error('Image processing error in internal storage controller:', err.message);
       }
     }
     processed.push(img);
@@ -105,7 +102,7 @@ exports.createProduct = async (req, res) => {
   try {
     const body = { ...req.body };
     if (body.images) {
-      body.images = await processImagesArray(body.images, 'prod');
+      body.images = await processImagesArray(body.images);
     }
     const product = new InternalStorage(body);
     await product.save();
@@ -121,7 +118,7 @@ exports.updateProduct = async (req, res) => {
   try {
     const body = { ...req.body };
     if (body.images) {
-      body.images = await processImagesArray(body.images, `prod_${req.params.id}`);
+      body.images = await processImagesArray(body.images);
     }
     const product = await InternalStorage.findByIdAndUpdate(req.params.id, body, {
       returnDocument: 'after',
