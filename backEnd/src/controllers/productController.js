@@ -86,6 +86,10 @@ exports.getProducts = async (req, res) => {
 
     res.status(200).json(products);
   } catch (error) {
+    console.error('Error retrieving products:', error.message);
+    if (productsCache && productsCache.length > 0) {
+      return res.status(200).json(productsCache);
+    }
     res.status(500).json({ message: 'Error retrieving products', error: error.message });
   }
 };
