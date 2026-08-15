@@ -3,14 +3,15 @@ const mongoose = require('mongoose');
 const connection = async () => {
     try {
         await mongoose.connect(process.env.MONGO_URI, {
-            maxPoolSize: 20,
-            minPoolSize: 5,
-            serverSelectionTimeoutMS: 5000,
-            socketTimeoutMS: 30000,
+            maxPoolSize: 10,
+            serverSelectionTimeoutMS: 30000,
+            socketTimeoutMS: 45000,
+            connectTimeoutMS: 30000,
         });
-        console.log('connection successfully');
+        console.log('MongoDB connected successfully');
     } catch (err) {
-        console.log('connection failed ' + err.message);
+        console.error('MongoDB connection failed: ' + err.message);
+        throw err;
     }
 }
 

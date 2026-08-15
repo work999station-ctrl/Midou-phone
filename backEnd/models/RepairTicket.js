@@ -126,7 +126,6 @@ repairTicketSchema.pre('save', function () {
 
 repairTicketSchema.index({ createdAt: -1 });
 repairTicketSchema.index({ status: 1 });
-repairTicketSchema.index({ ticketId: 1 });
 repairTicketSchema.index({ customerPhone: 1 });
 
 module.exports = mongoose.model('RepairTicket', repairTicketSchema);

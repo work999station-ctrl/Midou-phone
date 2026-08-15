@@ -99,11 +99,15 @@ async function warmupCache() {
   }
 }
 
-connection().then(() => {
-  seedAdmin();
-  warmupCache();
-});
-
-app.listen(PORT, () => {
-    console.log("server start on port " + PORT);
+connection().then(async () => {
+  await seedAdmin();
+  await warmupCache();
+  app.listen(PORT, () => {
+    console.log("server started on port " + PORT);
+  });
+}).catch(err => {
+  console.error("Database connection initialization failed, starting fallback listener:", err.message);
+  app.listen(PORT, () => {
+    console.log("server started in fallback mode on port " + PORT);
+  });
 });
