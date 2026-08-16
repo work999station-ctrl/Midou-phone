@@ -15,6 +15,7 @@ const Admin = require('../models/Admin');
 
 const path = require('path');
 
+dotenv.config({ path: path.join(__dirname, '../.env') });
 dotenv.config();
 const PORT = Number(process.env.PORT) || 4000;
 const app = express();

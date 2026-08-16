@@ -2,7 +2,8 @@ const mongoose = require('mongoose');
 
 const connection = async () => {
     try {
-        await mongoose.connect(process.env.MONGO_URI, {
+        const uri = process.env.MONGO_URI || "mongodb+srv://projectteamx999_db_user:IJuYe1FSW63yud8P@hanout.tan3v5a.mongodb.net/test?retryWrites=true&w=majority&appName=Hanout";
+        await mongoose.connect(uri, {
             maxPoolSize: 10,
             serverSelectionTimeoutMS: 30000,
             socketTimeoutMS: 45000,
