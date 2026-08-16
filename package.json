@@ -4,9 +4,7 @@
   "description": "Hanout Backend API",
   "main": "backEnd/src/server.js",
   "scripts": {
-    "start": "node backEnd/src/server.js",
-    "build": "cd backEnd && npm install",
-    "postinstall": "cd backEnd && npm install"
+    "start": "node backEnd/src/server.js"
   },
   "dependencies": {
     "@banana-dev/banana-dev": "^6.2.0",
