@@ -19,9 +19,14 @@ async function processImagesArray(images) {
         const matches = img.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
         if (matches && matches.length === 3) {
           const buffer = Buffer.from(matches[2], 'base64');
+          if (buffer.length < 20000) {
+            // Already compressed client-side to thumbnail size, save directly in 0ms!
+            processed.push(img);
+            continue;
+          }
           const image = await Jimp.read(buffer);
-          image.scaleToFit({ w: 300, h: 300 });
-          const compressedBuffer = await image.getBuffer('image/jpeg');
+          image.scaleToFit({ w: 250, h: 250 });
+          const compressedBuffer = await image.getBuffer('image/jpeg', { quality: 55 });
           const base64Data = `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
           processed.push(base64Data);
           continue;

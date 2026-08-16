@@ -266,19 +266,52 @@ export default function AdminTransactions() {
   };
 
   // --- Add New Product & Purchase ---
-  const handleImageFileChange = (e) => {
+  const compressClientImage = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxDim = 250;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL('image/jpeg', 0.55);
+          resolve(compressed);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleImageFileChange = async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      setCreateError('File size exceeds 5MB limit.');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setNewProduct((prev) => ({ ...prev, images: reader.result }));
+    try {
+      const compressedDataUrl = await compressClientImage(file);
+      setNewProduct((prev) => ({ ...prev, images: compressedDataUrl }));
       setCreateError('');
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Image compression failed:', err);
+    }
   };
 
   const handleCreateProduct = async (e) => {
@@ -304,7 +337,7 @@ export default function AdminTransactions() {
           category: newProduct.category,
           price: sellingPrice,
           stock: initialStock,
-          images: newProduct.images.trim() ? [newProduct.images.trim()] : []
+          images: newProduct.images ? [newProduct.images] : []
         })
       });
 
@@ -315,23 +348,27 @@ export default function AdminTransactions() {
 
       const createdItem = await resInternal.json();
 
-      // 2. Create Purchase Transaction for the cost
-      await fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/transactions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'purchase',
-          description: `Initial Stock: ${createdItem.name}`,
-          totalPrice: Number(newProduct.purchaseCost),
-          quantity: Number(newProduct.stock) || 10,
-          productId: createdItem._id,
-          updateStock: false // Already set initial stock during creation
-        })
-      });
+      // Optimistically update product list on screen immediately
+      setProducts((prev) => [createdItem, ...prev.filter(p => p._id !== createdItem._id)]);
+      setShowAddModal(false);
+      setNewProduct({ name: '', category: 'phone', price: '', stock: 1, images: '', purchaseCost: '' });
 
-      // 3. Create in Public Shop (Optional sync)
-      try {
-        await fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/products', {
+      // 2 & 3. Sync Purchase Transaction & Public Shop in background parallel
+      Promise.all([
+        fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/transactions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'purchase',
+            description: `Initial Stock: ${createdItem.name}`,
+            totalPrice: Number(newProduct.purchaseCost),
+            quantity: initialStock,
+            productId: createdItem._id,
+            updateStock: false
+          })
+        }).catch(err => console.warn('Transaction sync error:', err.message)),
+
+        fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/products', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -340,18 +377,13 @@ export default function AdminTransactions() {
             price: sellingPrice,
             stock: initialStock,
             description: `${newProduct.name.trim()} - ${newProduct.category}`,
-            images: newProduct.images.trim() ? [newProduct.images.trim()] : []
+            images: newProduct.images ? [newProduct.images] : []
           })
-        });
-      } catch (e) {
-        console.warn('Shop product sync warning:', e.message);
-      }
+        }).catch(err => console.warn('Shop product sync warning:', err.message))
+      ]).then(() => {
+        fetchTransactions();
+      });
 
-      await fetchProducts();
-      await fetchTransactions();
-
-      setShowAddModal(false);
-      setNewProduct({ name: '', category: 'phone', price: '', stock: 10, images: '', purchaseCost: '' });
     } catch (err) {
       console.error('Create product error:', err.message);
       setCreateError(err.message);
