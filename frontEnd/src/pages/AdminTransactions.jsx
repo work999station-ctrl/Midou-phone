@@ -557,7 +557,7 @@ export default function AdminTransactions() {
           
           {/* TAB: POS MODE */}
           {activeTab === 'pos' && (
-            <div className="flex flex-col lg:flex-row gap-6 h-full relative">
+            <div className="flex flex-col xl:flex-row gap-6 h-full relative">
               {/* Left Column: Products Grid & Category Filter */}
               <div className="flex-1 space-y-6 flex flex-col min-h-0 overflow-hidden">
                 
@@ -646,8 +646,8 @@ export default function AdminTransactions() {
                 </div>
 
                 {/* Product Grid */}
-                <div className="flex-1 overflow-y-auto pr-1 scrollbar-thin pb-24 lg:pb-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+                <div className="flex-1 overflow-y-auto pr-1 scrollbar-thin pb-24 xl:pb-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 min-[1920px]:grid-cols-4 gap-4 sm:gap-5">
                     {filteredProducts.map((product) => {
                       const img = product.images && product.images.length > 0 ? product.images[0] : null;
                       const selectedEntry = cart.find((item) => item.product._id === product._id);
@@ -665,7 +665,7 @@ export default function AdminTransactions() {
                       return (
                         <div
                           key={product._id}
-                          className={`relative bg-surface-container/40 backdrop-blur-xl rounded-2xl p-5 border transition-all duration-300 group flex flex-col justify-between shadow-lg ${
+                          className={`relative bg-surface-container/40 backdrop-blur-xl rounded-2xl p-4 sm:p-5 border transition-all duration-300 group flex flex-col justify-between shadow-lg ${
                             isEditing
                               ? 'border-primary/60 shadow-[0_0_20px_rgba(192,193,255,0.2)]'
                               : selectedEntry
@@ -673,32 +673,35 @@ export default function AdminTransactions() {
                                 : 'border-white/5 hover:border-secondary/40'
                           }`}
                         >
-                          {/* Edit toggle button */}
-                          <button
-                            onClick={() => isEditing ? cancelEditProduct(product._id) : startEditProduct(product)}
-                            className={`absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer border-none ${
-                              isEditing ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'bg-white/5 text-on-surface-variant hover:bg-white/10 hover:text-primary opacity-0 group-hover:opacity-100'
-                            }`}
-                            title={isEditing ? 'Cancel edit' : 'Edit product'}
-                          >
-                            <span className="material-symbols-outlined text-[15px]">{isEditing ? 'close' : 'edit'}</span>
-                          </button>
+                          {/* Top Action Buttons (Edit & Delete) */}
+                          <div className="absolute top-3 right-3 flex items-center gap-1 z-10">
+                            {/* Delete button */}
+                            {!isEditing && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleDeleteProduct(product._id); }}
+                                className="w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer border-none bg-black/40 text-on-surface-variant hover:bg-red-500/20 hover:text-red-400 opacity-0 group-hover:opacity-100 shadow-sm"
+                                title="Delete product"
+                              >
+                                <span className="material-symbols-outlined text-[15px]">delete</span>
+                              </button>
+                            )}
 
-                          {/* Delete button */}
-                          {!isEditing && (
+                            {/* Edit toggle button */}
                             <button
-                              onClick={(e) => { e.stopPropagation(); handleDeleteProduct(product._id); }}
-                              className="absolute top-3 right-11 w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer border-none bg-white/5 text-on-surface-variant hover:bg-red-500/20 hover:text-red-400 opacity-0 group-hover:opacity-100"
-                              title="Delete product"
+                              onClick={() => isEditing ? cancelEditProduct(product._id) : startEditProduct(product)}
+                              className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer border-none shadow-sm ${
+                                isEditing ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'bg-black/40 text-on-surface-variant hover:bg-white/10 hover:text-primary opacity-0 group-hover:opacity-100'
+                              }`}
+                              title={isEditing ? 'Cancel edit' : 'Edit product'}
                             >
-                              <span className="material-symbols-outlined text-[15px]">delete</span>
+                              <span className="material-symbols-outlined text-[15px]">{isEditing ? 'close' : 'edit'}</span>
                             </button>
-                          )}
+                          </div>
 
-                          <div className="flex items-start gap-4">
+                          <div className="flex items-start gap-3 sm:gap-4">
                             <div 
                               onClick={() => img && setPreviewImage({ url: img, name: product.name })}
-                              className={`w-24 h-24 sm:w-28 sm:h-28 rounded-xl bg-surface-container-high border border-white/10 flex items-center justify-center overflow-hidden shrink-0 shadow-inner relative group/img ${
+                              className={`w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-surface-container-high border border-white/10 flex items-center justify-center overflow-hidden shrink-0 shadow-inner relative group/img ${
                                 img ? 'cursor-pointer' : ''
                               }`}
                               title={img ? "Click to view full image" : ""}
@@ -707,13 +710,13 @@ export default function AdminTransactions() {
                                 <>
                                   <img src={img} alt={product.name} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
                                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity">
-                                    <span className="material-symbols-outlined text-white text-[22px]">zoom_in</span>
+                                    <span className="material-symbols-outlined text-white text-[20px]">zoom_in</span>
                                   </div>
                                 </>
                               ) : null}
-                              <span className="material-symbols-outlined text-outline text-[40px]" style={{ display: img ? 'none' : 'block' }}>{fallbackIcon}</span>
+                              <span className="material-symbols-outlined text-outline text-[32px] sm:text-[38px]" style={{ display: img ? 'none' : 'block' }}>{fallbackIcon}</span>
                             </div>
-                            <div className="flex-1 min-w-0">
+                            <div className="flex-1 min-w-0 pr-6">
                               {isEditing ? (
                                 /* ── Edit mode fields ── */
                                 <div className="space-y-2">
@@ -724,7 +727,7 @@ export default function AdminTransactions() {
                                       type="text"
                                       value={edits.name || ''}
                                       onChange={(e) => setEditingProduct((prev) => ({ ...prev, [product._id]: { ...edits, name: e.target.value } }))}
-                                      className="w-full bg-black/50 border border-white/10 rounded-lg px-2 py-1.5 text-white font-bold text-sm outline-none focus:border-primary/60 transition-all"
+                                      className="w-full bg-black/50 border border-white/10 rounded-lg px-2 py-1.5 text-white font-bold text-xs sm:text-sm outline-none focus:border-primary/60 transition-all"
                                       placeholder={t('productName', 'Product Name')}
                                     />
                                   </div>
@@ -750,16 +753,16 @@ export default function AdminTransactions() {
                                         type="number" min="0"
                                         value={edits.price}
                                         onChange={(e) => setEditingProduct((prev) => ({ ...prev, [product._id]: { ...edits, price: e.target.value } }))}
-                                        className="w-full bg-black/50 border border-white/10 rounded-lg px-2 py-1.5 text-secondary font-mono font-bold text-sm outline-none focus:border-primary/60 transition-all"
+                                        className="w-full bg-black/50 border border-white/10 rounded-lg px-2 py-1.5 text-secondary font-mono font-bold text-xs sm:text-sm outline-none focus:border-primary/60 transition-all"
                                       />
                                     </div>
-                                    <div className="w-20">
+                                    <div className="w-16 sm:w-20">
                                       <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-1 block">{t('stockLabel', 'Stock')}</label>
                                       <input
                                         type="number" min="0"
                                         value={edits.stock}
                                         onChange={(e) => setEditingProduct((prev) => ({ ...prev, [product._id]: { ...edits, stock: e.target.value } }))}
-                                        className="w-full bg-black/50 border border-white/10 rounded-lg px-2 py-1.5 text-white font-mono font-bold text-sm outline-none focus:border-primary/60 transition-all"
+                                        className="w-full bg-black/50 border border-white/10 rounded-lg px-2 py-1.5 text-white font-mono font-bold text-xs sm:text-sm outline-none focus:border-primary/60 transition-all"
                                       />
                                     </div>
                                   </div>
@@ -767,16 +770,16 @@ export default function AdminTransactions() {
                               ) : (
                                 /* ── View mode ── */
                                 <>
-                                  <h3 className="font-bold text-base text-on-surface truncate pr-8 mb-2">{product.name}</h3>
+                                  <h3 className="font-bold text-sm sm:text-base text-on-surface line-clamp-2 leading-snug mb-1.5" title={product.name}>{product.name}</h3>
                                   <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-on-surface-variant inline-block">
+                                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-on-surface-variant inline-block">
                                       {getProductCategoryBadge(product.category)}
                                     </span>
-                                    <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border font-mono ${
+                                    <span className={`text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md border font-mono ${
                                       (product.stock ?? 0) > 5 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : (product.stock ?? 0) > 0 ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'
                                     }`}>{t('stockLabel', 'Stock')}: {product.stock ?? 0}</span>
                                   </div>
-                                  <p className="text-xl font-bold font-mono text-secondary mt-2">{formatDA(product.price)}</p>
+                                  <p className="text-base sm:text-lg xl:text-xl font-bold font-mono text-secondary mt-1.5 sm:mt-2 tracking-tight">{formatDA(product.price)}</p>
                                 </>
                               )}
                             </div>
@@ -784,11 +787,11 @@ export default function AdminTransactions() {
 
                           {isEditing ? (
                             /* Save button */
-                            <div className="mt-4 pt-4 border-t border-white/5">
+                            <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-white/5">
                               <button
                                 onClick={() => saveEditProduct(product._id)}
                                 disabled={edits.saving}
-                                className="w-full py-2 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-sm transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer border-none flex items-center justify-center gap-2"
+                                className="w-full py-2 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-xs sm:text-sm transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer border-none flex items-center justify-center gap-2"
                               >
                                 {edits.saving ? (
                                   <><span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span> {t('savingChanges', 'Saving...')}</>
@@ -798,9 +801,9 @@ export default function AdminTransactions() {
                               </button>
                             </div>
                           ) : (
-                            <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between gap-2">
+                            <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-white/5 flex items-center justify-between gap-2">
                               {selectedEntry ? (
-                                <span className="text-sm font-bold text-secondary flex items-center gap-1.5">
+                                <span className="text-xs sm:text-sm font-bold text-secondary flex items-center gap-1.5">
                                   <span className="w-2 h-2 rounded-full bg-secondary animate-ping" /> {selectedEntry.quantity} {t('selectedQty', 'selected')}
                                 </span>
                               ) : (
@@ -808,10 +811,10 @@ export default function AdminTransactions() {
                               )}
                               <button
                                 onClick={() => addToCart(product)}
-                                className="w-12 h-12 rounded-xl bg-secondary text-[#0b1326] flex items-center justify-center shadow-[0_0_15px_rgba(93,230,255,0.4)] hover:shadow-[0_0_25px_rgba(93,230,255,0.7)] hover:scale-105 active:scale-95 transition-all cursor-pointer border-none shrink-0 ml-auto"
+                                className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-secondary text-[#0b1326] flex items-center justify-center shadow-[0_0_15px_rgba(93,230,255,0.4)] hover:shadow-[0_0_25px_rgba(93,230,255,0.7)] hover:scale-105 active:scale-95 transition-all cursor-pointer border-none shrink-0 ml-auto"
                                 title="Add to cart"
                               >
-                                <span className="material-symbols-outlined text-[26px] font-bold">add</span>
+                                <span className="material-symbols-outlined text-[22px] sm:text-[24px] font-bold">add</span>
                               </button>
                             </div>
                           )}
@@ -822,9 +825,9 @@ export default function AdminTransactions() {
                 </div>
               </div>
 
-              {/* Cart — fixed bottom sheet on mobile, fixed panel on desktop */}
-              {/* Mobile floating cart button */}
-              <div className="fixed bottom-6 right-4 z-30 lg:hidden">
+              {/* Cart — fixed bottom sheet on mobile/tablet, fixed panel on large desktop */}
+              {/* Mobile/Tablet floating cart button */}
+              <div className="fixed bottom-6 right-4 z-30 xl:hidden">
                 <button
                   onClick={() => setMobileCartOpen(true)}
                   className="relative flex items-center gap-2 px-5 py-3 rounded-full font-bold text-sm shadow-xl bg-primary text-white active:scale-95 transition-all cursor-pointer border-none"
@@ -839,30 +842,30 @@ export default function AdminTransactions() {
                 </button>
               </div>
 
-              {/* Mobile cart overlay */}
+              {/* Mobile/Tablet cart overlay */}
               {mobileCartOpen && (
                 <div
-                  className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+                  className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 xl:hidden"
                   onClick={() => setMobileCartOpen(false)}
                 />
               )}
 
               {/* Cart panel */}
               <div className={`
-                fixed bottom-0 left-0 right-0 z-50 lg:static
-                lg:w-96 lg:flex lg:flex-col lg:h-full
-                bg-surface/90 lg:bg-surface/80 backdrop-blur-xl rounded-t-3xl lg:rounded-3xl
+                fixed bottom-0 left-0 right-0 z-50 xl:static
+                xl:w-80 2xl:w-96 xl:flex xl:flex-col xl:h-full
+                bg-surface/90 xl:bg-surface/80 backdrop-blur-xl rounded-t-3xl xl:rounded-3xl
                 border border-white/10 flex flex-col shadow-2xl overflow-hidden
                 transition-transform duration-300 ease-in-out
-                ${mobileCartOpen ? 'translate-y-0 max-h-[80vh]' : 'translate-y-full lg:translate-y-0'}
+                ${mobileCartOpen ? 'translate-y-0 max-h-[80vh]' : 'translate-y-full xl:translate-y-0'}
               `}>
                 <div className={`p-4 border-b border-white/5 flex items-center justify-between ${posMode === 'sales' ? 'bg-green-500/20' : 'bg-primary/20'}`}>
                   {/* drag handle on mobile */}
-                  <div className="lg:hidden absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-white/20" />
+                  <div className="xl:hidden absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-white/20" />
                   <h2 className="text-base font-bold text-white flex items-center gap-2">
                     {posMode === 'sales' ? `🛒 ${t('currentSale', 'Current Sale')}` : `📦 ${t('restockPurchase', 'Restock Purchase')}`}
                   </h2>
-                  <button onClick={() => setMobileCartOpen(false)} className="lg:hidden text-gray-400 hover:text-white transition-colors cursor-pointer bg-transparent border-none p-1">
+                  <button onClick={() => setMobileCartOpen(false)} className="xl:hidden text-gray-400 hover:text-white transition-colors cursor-pointer bg-transparent border-none p-1">
                     <span className="material-symbols-outlined text-[20px]">close</span>
                   </button>
                 </div>
