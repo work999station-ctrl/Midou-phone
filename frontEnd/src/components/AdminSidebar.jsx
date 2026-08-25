@@ -38,7 +38,7 @@ export default function AdminSidebar() {
             <span className="material-symbols-outlined text-on-primary text-[22px]">hub</span>
           </div>
           <span className="font-headline-md text-headline-md tracking-tight uppercase text-primary font-bold">
-            {t('adminAppName', 'Hanout Admin')}
+            {t('adminAppName', 'Midou Phone Admin')}
           </span>
         </div>
       </div>

@@ -1,8 +1,8 @@
 export const translations = {
   en: {
     // Brand & Common
-    appName: "Hanout",
-    adminAppName: "Hanout Admin",
+    appName: "Midou Phone",
+    adminAppName: "Midou Phone Admin",
     home: "Home",
     shop: "Shop",
     bookRepair: "Book a Repair",
@@ -312,8 +312,8 @@ export const translations = {
 
   ar: {
     // Brand & Common
-    appName: "حانوت",
-    adminAppName: "إدارة حانوت",
+    appName: "ميدو فون",
+    adminAppName: "إدارة ميدو فون",
     home: "الرئيسية",
     shop: "المتجر",
     bookRepair: "حجز تصليح",

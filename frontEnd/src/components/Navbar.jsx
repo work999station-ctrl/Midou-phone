@@ -13,7 +13,7 @@ export default function Navbar() {
     <nav className="fixed top-0 w-full z-50 bg-surface/30 dark:bg-surface/30 backdrop-blur-xl border-b border-white/10 shadow-md">
       <div className="flex justify-between items-center h-20 px-gutter max-w-container-max mx-auto">
         <NavLink to="/" className="text-headline-md font-headline-md font-bold text-primary dark:text-primary tracking-tighter hover:opacity-80 transition-opacity pl-14 md:pl-0">
-          {t('appName', 'Hanout')}
+          {t('appName', 'Midou Phone')}
         </NavLink>
         
         <div className="hidden md:flex items-center space-x-8">

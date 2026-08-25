@@ -76,25 +76,43 @@ Do not include any markdown, headers, asterisks, or extra formatting. Only the p
 
     // 2. Fallback to Groq API if Gemini produced no text
     if (!responseText && groqApiKey) {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${groqApiKey.trim()}`
-        },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.2
-        })
-      });
+      const groqModels = [
+        'openai/gpt-oss-20b',
+        'openai/gpt-oss-120b',
+        'qwen/qwen3.6-27b',
+        'llama-3.3-70b-versatile',
+        'llama-3.1-8b-instant'
+      ];
 
-      if (response.ok) {
-        const data = await response.json();
-        responseText = data.choices?.[0]?.message?.content || '';
-      } else {
-        const errText = await response.text();
-        throw new Error(`Groq API request failed (${response.status}): ${errText}`);
+      for (const model of groqModels) {
+        try {
+          const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${groqApiKey.trim()}`
+            },
+            body: JSON.stringify({
+              model,
+              messages: [{ role: 'user', content: prompt }],
+              temperature: 0.2
+            })
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            let content = data.choices?.[0]?.message?.content || '';
+            content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+            if (content.length > 20) {
+              responseText = content;
+              break;
+            }
+          } else {
+            console.warn(`[Groq ${model} status ${response.status}]`, (await response.text()).slice(0, 150));
+          }
+        } catch (groqErr) {
+          console.warn(`[Groq ${model} error]`, groqErr.message);
+        }
       }
     }
 

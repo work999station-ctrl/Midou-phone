@@ -114,7 +114,7 @@ export default function AdminRepairManagement() {
   const [dateFilter, setDateFilter] = useState(todayStr);
 
   useEffect(() => {
-    document.title = "Hanout - Available Repairs";
+    document.title = "Midou Phone - Available Repairs";
   }, []);
 
   // Close search suggestions on outside click
