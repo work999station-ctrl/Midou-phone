@@ -4,6 +4,7 @@ import { useAuthStore } from '../features/auth/store/useAuthStore';
 import { useLanguageStore } from '../features/language/store/useLanguageStore';
 import AdminSidebar from '../components/AdminSidebar';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import { getApiUrl } from '../config/api';
 
 export default function AdminTransactions() {
   const { isAuthenticated } = useAuthStore();
@@ -81,7 +82,7 @@ export default function AdminTransactions() {
 
   const fetchTransactions = async () => {
     try {
-      const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/transactions');
+      const res = await fetch(getApiUrl() + '/api/transactions');
       if (res.ok) {
         const data = await res.json();
         setTransactions(data);
@@ -93,7 +94,7 @@ export default function AdminTransactions() {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/internal-storage');
+      const res = await fetch(getApiUrl() + '/api/internal-storage');
       if (res.ok) {
         const data = await res.json();
         setProducts(data);
@@ -201,7 +202,7 @@ export default function AdminTransactions() {
     if (!edits) return;
     setEditingProduct((prev) => ({ ...prev, [id]: { ...edits, saving: true } }));
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/internal-storage/${id}`, {
+      const res = await fetch(`${getApiUrl()}/api/internal-storage/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -224,7 +225,7 @@ export default function AdminTransactions() {
   const handleDeleteProduct = async (id) => {
     if (!window.confirm('Are you sure you want to completely delete this product from storage?')) return;
     try {
-      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/internal-storage/${id}`, { method: 'DELETE' });
+      await fetch(`${getApiUrl()}/api/internal-storage/${id}`, { method: 'DELETE' });
       fetchProducts();
     } catch (err) {
       console.error('Failed to delete product', err);
@@ -241,7 +242,7 @@ export default function AdminTransactions() {
 
       for (const item of cart) {
         const adjustedPrice = Math.round(item.totalPrice * ratio);
-        await fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/transactions', {
+        await fetch(getApiUrl() + '/api/transactions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -256,10 +257,9 @@ export default function AdminTransactions() {
       }
       setCart([]);
       setCustomTotal(null);
-      fetchTransactions();
-      fetchProducts();
+      await Promise.all([fetchTransactions(), fetchProducts()]);
     } catch (err) {
-      console.error('Checkout failed', err);
+      console.error('POS Checkout failed', err);
     } finally {
       setSubmitting(false);
     }
@@ -329,7 +329,7 @@ export default function AdminTransactions() {
       const sellingPrice = newProduct.price ? Number(newProduct.price) : unitCost;
 
       // 1. Create in Internal Storage
-      const resInternal = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/internal-storage', {
+      const resInternal = await fetch(getApiUrl() + '/api/internal-storage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -355,7 +355,7 @@ export default function AdminTransactions() {
 
       // 2 & 3. Sync Purchase Transaction & Public Shop in background parallel
       Promise.all([
-        fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/transactions', {
+        fetch(getApiUrl() + '/api/transactions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -368,7 +368,7 @@ export default function AdminTransactions() {
           })
         }).catch(err => console.warn('Transaction sync error:', err.message)),
 
-        fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/products', {
+        fetch(getApiUrl() + '/api/products', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -397,7 +397,7 @@ export default function AdminTransactions() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/transactions', {
+      await fetch(getApiUrl() + '/api/transactions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -432,7 +432,7 @@ export default function AdminTransactions() {
   const handleDeleteTransaction = async (id) => {
     if (!window.confirm('Are you sure you want to delete this transaction?')) return;
     try {
-      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/transactions/${id}`, { method: 'DELETE' });
+      await fetch(`${getApiUrl()}/api/transactions/${id}`, { method: 'DELETE' });
       fetchTransactions();
       fetchProducts();
     } catch (err) {
@@ -443,7 +443,7 @@ export default function AdminTransactions() {
   const handleCancelTransaction = async (tx) => {
     if (!window.confirm(`Are you sure you want to cancel this ${tx.type}? This will add a canceled transaction to the ledger and reverse the stock change.`)) return;
     try {
-      await fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/transactions', {
+      await fetch(getApiUrl() + '/api/transactions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

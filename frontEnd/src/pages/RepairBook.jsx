@@ -5,6 +5,7 @@ import { useAuthStore } from '../features/auth/store/useAuthStore';
 import { useLanguageStore } from '../features/language/store/useLanguageStore';
 import { brandModels, cleanModelName } from '../data/devicesData';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import { getApiUrl } from '../config/api';
 
 // Flatten all devices for quick search lookup
 const allDevicesList = [];
@@ -82,7 +83,7 @@ export default function RepairBook() {
 
   // Fetch pricing matrix from backend
   useEffect(() => {
-    fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/repairs/prices')
+    fetch(getApiUrl() + '/api/repairs/prices')
       .then((res) => res.json())
       .then((data) => setPricing(data))
       .catch(() => {
@@ -282,7 +283,7 @@ export default function RepairBook() {
     };
 
     try {
-      const response = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/repairs/book', {
+      const response = await fetch(getApiUrl() + '/api/repairs/book', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bookingPayload)

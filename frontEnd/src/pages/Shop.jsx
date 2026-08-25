@@ -4,6 +4,7 @@ import { useAuthStore } from '../features/auth/store/useAuthStore';
 import { useLanguageStore } from '../features/language/store/useLanguageStore';
 import { brandModels } from '../data/devicesData';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import { getApiUrl } from '../config/api';
 
 const MOCK_PRODUCTS = [
   {
@@ -178,7 +179,7 @@ export default function Shop() {
     setAiSpecsError(null);
 
     try {
-      const response = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/ai/specs', {
+      const response = await fetch(getApiUrl() + '/api/ai/specs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productName: newProduct.name })
@@ -234,34 +235,64 @@ export default function Shop() {
 
   const [imageError, setImageError] = useState(null);
 
-  const handleImageChange = (e) => {
+  const compressClientImage = (file, maxDim = 400, quality = 0.65) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL('image/jpeg', quality);
+          resolve(compressed);
+        };
+        img.onerror = () => resolve(event.target.result);
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleImageChange = async (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
     setImageError(null);
 
-    files.forEach((file) => {
+    for (const file of files) {
       if (!file.type.startsWith('image/')) {
         setImageError('Please select valid image files.');
-        return;
+        continue;
       }
 
-      if (file.size > 5 * 1024 * 1024) {
-        setImageError('Image file is too large. Please pick images under 5 MB.');
-        return;
+      try {
+        const compressedBase64 = await compressClientImage(file);
+        setNewProduct((prev) => ({
+          ...prev,
+          images: [...prev.images, compressedBase64]
+        }));
+      } catch (err) {
+        console.error('Image compression error:', err);
       }
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setNewProduct((prev) => ({
-            ...prev,
-            images: [...prev.images, event.target.result]
-          }));
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+    }
 
     e.target.value = '';
   };
@@ -448,18 +479,17 @@ export default function Shop() {
 
     try {
       const isEditing = Boolean(editingProductId);
-      const response = await fetch(
-        isEditing
-          ? `${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/products/${editingProductId}`
-          : (import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/products',
-        {
-          method: isEditing ? 'PUT' : 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(payload)
-        }
-      );
+      const url = isEditing
+        ? `${getApiUrl()}/api/products/${editingProductId}`
+        : `${getApiUrl()}/api/products`;
+
+      const response = await fetch(url, {
+        method: isEditing ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
 
       if (!response.ok) {
         const errData = await response.json();
@@ -488,10 +518,13 @@ export default function Shop() {
       });
       setParsedSpecs([]);
       setImageError(null);
+      setIsModalOpen(false);
       setEditingProductId(null);
-      setShowNewProductModal(false);
+      setAiSpecsError(null);
+      setHasAiAutoFilled(false);
     } catch (err) {
-      setSubmitError(err.message);
+      console.error('Product save error:', err);
+      setSubmitError(err.message || 'Network error occurred while saving product.');
     } finally {
       setIsSubmitting(false);
     }
@@ -567,7 +600,7 @@ export default function Shop() {
     setMarkingSoldId(product._id);
     const newStock = product.stock === 0 ? 1 : 0;
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/products/${product._id}`, {
+      const response = await fetch(`${getApiUrl()}/api/products/${product._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stock: newStock })
@@ -591,7 +624,7 @@ export default function Shop() {
     setTogglingAvailabilityId(product._id);
     const newAvailable = product.isAvailable === false ? true : false;
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/products/${product._id}`, {
+      const response = await fetch(`${getApiUrl()}/api/products/${product._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isAvailable: newAvailable })
@@ -622,7 +655,7 @@ export default function Shop() {
     const product = deleteConfirmProduct;
     setDeletingId(product._id);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/products/${product._id}`, {
+      const response = await fetch(`${getApiUrl()}/api/products/${product._id}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -639,7 +672,7 @@ export default function Shop() {
     }
   };
   useEffect(() => {
-    fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/products')
+    fetch(getApiUrl() + '/api/products')
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {

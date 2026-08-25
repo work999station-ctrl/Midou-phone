@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { getApiUrl } from '../../../config/api';
 
 export const useAuthStore = create((set) => ({
   adminToken: localStorage.getItem('adminToken') || null,
@@ -10,7 +11,7 @@ export const useAuthStore = create((set) => ({
   login: async (username, password) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/admin/login', {
+      const response = await fetch(getApiUrl() + '/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })

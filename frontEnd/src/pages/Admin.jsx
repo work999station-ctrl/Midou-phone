@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuthStore } from '../features/auth/store/useAuthStore';
 import { cleanModelName } from '../data/devicesData';
+import { getApiUrl } from '../config/api';
 
 export default function Admin() {
   const { isAuthenticated, adminToken, login, logout, isLoading, error, clearError } = useAuthStore();
@@ -74,7 +75,7 @@ export default function Admin() {
     setDashboardLoading(true);
     setDashboardError('');
     try {
-      const response = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/repairs/tickets', {
+      const response = await fetch(getApiUrl() + '/api/repairs/tickets', {
         headers: {
           'Authorization': `Bearer ${adminToken}`
         }
@@ -148,7 +149,7 @@ export default function Admin() {
     const combinedNotes = `Email: ${parsed.email} | Include screen protector: ${parsed.protector} | Notes: ${editNotesText}`;
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/repairs/tickets/${activeTicket._id}`, {
+      const response = await fetch(`${getApiUrl()}/api/repairs/tickets/${activeTicket._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

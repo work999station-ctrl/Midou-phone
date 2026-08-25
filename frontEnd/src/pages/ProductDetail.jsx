@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { useCartStore } from '../features/shop/store/useCartStore';
+import { getApiUrl } from '../config/api';
 
 const MOCK_PRODUCTS = [
   {
@@ -53,7 +54,7 @@ export default function ProductDetail() {
   const [addedNotice, setAddedNotice] = useState(false);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/products/${id}`)
+    fetch(`${getApiUrl()}/api/products/${id}`)
       .then((res) => {
         if (!res.ok) throw new Error('Product not found');
         return res.json();

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { useRepairStore } from '../features/repairs/store/useRepairStore';
 import { useAuthStore } from '../features/auth/store/useAuthStore';
 import { useLanguageStore } from '../features/language/store/useLanguageStore';
+import { getApiUrl } from '../config/api';
 
 // Static fallback products matching the Stitch mockup
 const MOCK_PRODUCTS = [
@@ -20,15 +21,15 @@ const MOCK_PRODUCTS = [
     category: 'Audio',
     condition: 'New',
     price: 349,
-    images: ['https://lh3.googleusercontent.com/aida-public/AB6AXuAPIeQiZFTKPrGDeJknGaU-k23ZFEVmCZHKYSoA1Wrvltdey_wNn8mfkuM0CkUp-Rbglesrzge6tdig1dZUCMf1s4eBeQz1M3__WTjiNAAXZhe5uTwsKvxM2CKA2yrML7htxny2ksu4whNU5os3lMc3dNiBV8Jv0krsUxb5DrFPpSyhOzeeHgpr3hWdFG2-4vSjXOA13GfborcsL_Wdv-V-SxTviHg7nLqsNYK3PKmj8xHKSh6Sakg3_7b-uRBR47_wfanUPIb6FPc']
+    images: ['https://lh3.googleusercontent.com/aida-public/AB6AXuD8f7f5jU14rL_x7yq_447VwL8qMsnB4zYvM0U_rQo9gR18wz9p4j1bWzZlqgZp5_XpZ-VjGg262Yl9Kq1bWzZlqgZp5_XpZ-VjGg262Yl9Kq1bWzZlqgZp5_XpZ-VjGg262Yl9Kq1bWzZlqgZp5_XpZ-VjGg262Yl9Kq1bWzZlqgZp5_XpZ-VjGg262Yl9Kq']
   },
   {
     _id: 'mock-3',
-    name: 'Samsung Galaxy S23',
-    category: 'Smartphone',
-    condition: 'Like New',
-    price: 699,
-    images: ['https://lh3.googleusercontent.com/aida-public/AB6AXuBjtS9J3Bqstpy9kcxrF1f9WGbd09gu24FVJlDZPfRmt_xVybiQkbn3U4Dclr2ZFmonrTJ7kXDUL8iJYpA8q1SqoeuoKP4TFpfCox6BBZcRpui4XWNINOU2bJdnvCUNJTzpYLXJubswLXv8o3mZS6462Ealbu8u6_GDlCwL_VO1p0aRooMmA-2gOLpaHQpydgneams0qPTYU9r52EsUuRhDNOT51kz7sE7i5dFtKuY-6VM5qMcQxqRz-r2lh4L8D714PrKkx7PpeHo']
+    name: 'Samsung Galaxy Watch 6',
+    category: 'Wearable',
+    condition: 'New',
+    price: 299,
+    images: ['https://lh3.googleusercontent.com/aida-public/AB6AXuB2eD_L-XfNqD8_x1bWzZlqgZp5_XpZ-VjGg262Yl9Kq1bWzZlqgZp5_XpZ-VjGg262Yl9Kq1bWzZlqgZp5_XpZ-VjGg262Yl9Kq1bWzZlqgZp5_XpZ-VjGg262Yl9Kq1bWzZlqgZp5_XpZ-VjGg262Yl9Kq']
   },
   {
     _id: 'mock-4',
@@ -42,10 +43,9 @@ const MOCK_PRODUCTS = [
 
 export default function Home() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuthStore();
-  const { t, lang } = useLanguageStore();
-  const setBookingData = useRepairStore((state) => state.setBookingData);
-  const resetBooking = useRepairStore((state) => state.resetBooking);
+  const setBookingField = useRepairStore((state) => state.setBookingField);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const { t } = useLanguageStore();
 
   const [products, setProducts] = useState([]);
   const [pricing, setPricing] = useState(null);
@@ -60,7 +60,7 @@ export default function Home() {
 
   useEffect(() => {
     // Fetch products from backend or fallback to mocks
-    fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/products')
+    fetch(getApiUrl() + '/api/products')
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
@@ -72,7 +72,7 @@ export default function Home() {
       .catch(() => setProducts(MOCK_PRODUCTS));
 
     // Fetch pricing matrix from backend
-    fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/repairs/prices')
+    fetch(getApiUrl() + '/api/repairs/prices')
       .then((res) => res.json())
       .then((data) => setPricing(data))
       .catch(() => {

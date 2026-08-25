@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuthStore } from '../features/auth/store/useAuthStore';
 import AdminSidebar from '../components/AdminSidebar';
+import { getApiUrl } from '../config/api';
 
 export default function AdminSales() {
   const { isAuthenticated } = useAuthStore();
@@ -50,13 +51,13 @@ export default function AdminSales() {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/internal-storage');
+      const res = await fetch(getApiUrl() + '/api/internal-storage');
       if (!res.ok) throw new Error('Failed to fetch internal storage');
       let data = await res.json();
 
       // Fallback to public products catalog if internal storage is empty initially
       if (!data || data.length === 0) {
-        const publicRes = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/products');
+        const publicRes = await fetch(getApiUrl() + '/api/products');
         if (publicRes.ok) {
           data = await publicRes.json();
         }
@@ -72,7 +73,7 @@ export default function AdminSales() {
   // Fetch today's sales from dashboard top-selling endpoint
   const fetchTodaySales = async () => {
     try {
-      const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/dashboard/top-selling');
+      const res = await fetch(getApiUrl() + '/api/dashboard/top-selling');
       if (!res.ok) throw new Error('Failed to fetch sales');
       const salesData = await res.json();
 
@@ -184,7 +185,7 @@ export default function AdminSales() {
         }))
       };
 
-      const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/dashboard/sales', {
+      const res = await fetch(getApiUrl() + '/api/dashboard/sales', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -204,22 +205,54 @@ export default function AdminSales() {
     }
   };
 
-  // Handle Image File Selection from Device
-  const handleImageFileChange = (e) => {
+  // Handle Image File Selection with Canvas Compression
+  const compressClientImage = (file, maxDim = 400, quality = 0.65) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL('image/jpeg', quality);
+          resolve(compressed);
+        };
+        img.onerror = () => resolve(event.target.result);
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleImageFileChange = async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      setCreateError('File size exceeds 5MB limit. Please choose a smaller image.');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setNewProduct((prev) => ({ ...prev, images: reader.result }));
+    try {
+      const compressedBase64 = await compressClientImage(file);
+      setNewProduct((prev) => ({ ...prev, images: compressedBase64 }));
       setCreateError('');
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Image compression error:', err);
+    }
   };
 
   // Handle Create Product
@@ -234,7 +267,7 @@ export default function AdminSales() {
 
     try {
       // 1. Create in Internal Storage (Sales Page POS)
-      const resInternal = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/internal-storage', {
+      const resInternal = await fetch(getApiUrl() + '/api/internal-storage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -242,7 +275,7 @@ export default function AdminSales() {
           category: newProduct.category,
           price: Number(newProduct.price),
           stock: Number(newProduct.stock) || 10,
-          images: newProduct.images.trim() ? [newProduct.images.trim()] : []
+          images: newProduct.images ? [newProduct.images] : []
         })
       });
 
@@ -253,9 +286,9 @@ export default function AdminSales() {
 
       const createdItem = await resInternal.json();
 
-      // 2. Create in Public Shop Catalog (Product model for Shop Page)
-      try {
-        await fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/products', {
+      // 2 & 3. Sync Public Shop Catalog & Dashboard Sales in background
+      Promise.all([
+        fetch(getApiUrl() + '/api/products', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -264,16 +297,11 @@ export default function AdminSales() {
             price: Number(newProduct.price),
             stock: Number(newProduct.stock) || 10,
             description: `${newProduct.name.trim()} - ${newProduct.category}`,
-            images: newProduct.images.trim() ? [newProduct.images.trim()] : []
+            images: newProduct.images ? [newProduct.images] : []
           })
-        });
-      } catch (e) {
-        console.warn('Shop product sync warning:', e.message);
-      }
+        }).catch(e => console.warn('Shop product sync warning:', e.message)),
 
-      // 3. Record initial sale so product appears in Top Selling Products on Admin Dashboard
-      try {
-        await fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/dashboard/sales', {
+        fetch(getApiUrl() + '/api/dashboard/sales', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -281,13 +309,10 @@ export default function AdminSales() {
             quantity: 1,
             price: Number(newProduct.price)
           })
-        });
-      } catch (e) {
-        console.warn('Dashboard top selling sync warning:', e.message);
-      }
+        }).catch(e => console.warn('Dashboard top selling sync warning:', e.message))
+      ]);
 
-      await fetchProducts();
-
+      setProducts((prev) => [createdItem, ...prev.filter(p => p._id !== createdItem._id)]);
       setShowAddModal(false);
       setNewProduct({
         name: '',
@@ -315,12 +340,12 @@ export default function AdminSales() {
     setIsDeleting(true);
     try {
       // Attempt internal storage deletion first
-      let res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/internal-storage/${productId}`, {
+      let res = await fetch(`${getApiUrl()}/api/internal-storage/${productId}`, {
         method: 'DELETE'
       });
       // Fallback to public products catalog if not found in internal storage
       if (!res.ok) {
-        res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/products/${productId}`, {
+        res = await fetch(`${getApiUrl()}/api/products/${productId}`, {
           method: 'DELETE'
         });
       }

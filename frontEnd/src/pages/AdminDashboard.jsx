@@ -4,6 +4,7 @@ import { useAuthStore } from '../features/auth/store/useAuthStore';
 import { useLanguageStore } from '../features/language/store/useLanguageStore';
 import AdminSidebar from '../components/AdminSidebar';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import { getApiUrl } from '../config/api';
 
 export default function AdminDashboard() {
   const { isAuthenticated } = useAuthStore();
@@ -32,7 +33,7 @@ export default function AdminDashboard() {
   // Fetch today's revenue summary
   const fetchRevenue = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/dashboard/revenue?date=${dashboardDate}`);
+      const res = await fetch(`${getApiUrl()}/api/dashboard/revenue?date=${dashboardDate}`);
       if (!res.ok) throw new Error('Failed to fetch revenue');
       const data = await res.json();
       setRevenueData(data);
@@ -44,7 +45,7 @@ export default function AdminDashboard() {
   // Fetch 30 days revenue summary (4 weekly buckets)
   const fetchRevenue30Days = async () => {
     try {
-      const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/dashboard/revenue-30days');
+      const res = await fetch(getApiUrl() + '/api/dashboard/revenue-30days');
       if (res.ok) {
         const data = await res.json();
         setRevenue30Days(data);
@@ -57,7 +58,7 @@ export default function AdminDashboard() {
   // Fetch debts summary
   const fetchDebtsSummary = async () => {
     try {
-      const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/debts/summary');
+      const res = await fetch(getApiUrl() + '/api/debts/summary');
       if (res.ok) {
         const data = await res.json();
         setDebtsSummary(data);
@@ -71,7 +72,7 @@ export default function AdminDashboard() {
   const fetchTopSelling = async () => {
     setLoadingTopSelling(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/dashboard/top-selling?date=${dashboardDate}`);
+      const res = await fetch(`${getApiUrl()}/api/dashboard/top-selling?date=${dashboardDate}`);
       if (!res.ok) throw new Error('Failed to fetch top selling');
       const data = await res.json();
       setTopSelling(data);

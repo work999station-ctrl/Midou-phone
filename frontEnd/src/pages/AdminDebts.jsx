@@ -4,6 +4,7 @@ import { useAuthStore } from '../features/auth/store/useAuthStore';
 import { useLanguageStore } from '../features/language/store/useLanguageStore';
 import AdminSidebar from '../components/AdminSidebar';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import { getApiUrl } from '../config/api';
 
 export default function AdminDebts() {
   const { isAuthenticated } = useAuthStore();
@@ -45,7 +46,7 @@ export default function AdminDebts() {
     }
     setSavingPriceId(debtId);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/debts/${debtId}/price`, {
+      const res = await fetch(`${getApiUrl()}/api/debts/${debtId}/price`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ price: newVal })
@@ -95,7 +96,7 @@ export default function AdminDebts() {
   const fetchDebts = async () => {
     setLoading(true);
     try {
-      const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/debts');
+      const res = await fetch(getApiUrl() + '/api/debts');
       if (!res.ok) throw new Error('Failed to fetch debts');
       const data = await res.json();
       setDebts(data);
@@ -109,7 +110,7 @@ export default function AdminDebts() {
   // Fetch products for quick dropdown selection
   const fetchProducts = async () => {
     try {
-      const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/internal-storage');
+      const res = await fetch(getApiUrl() + '/api/internal-storage');
       if (res.ok) {
         const data = await res.json();
         setProducts(data);
@@ -143,7 +144,7 @@ export default function AdminDebts() {
         status: newDebt.status || 'Unpaid'
       };
 
-      const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api/debts', {
+      const res = await fetch(getApiUrl() + '/api/debts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -176,7 +177,7 @@ export default function AdminDebts() {
     setActionId(debt._id);
     const newStatus = debt.status === 'Unpaid' ? 'Paid' : 'Unpaid';
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/debts/${debt._id}/status`, {
+      const res = await fetch(`${getApiUrl()}/api/debts/${debt._id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
@@ -198,7 +199,7 @@ export default function AdminDebts() {
     if (!window.confirm('Are you sure you want to delete this debt record?')) return;
     setActionId(debtId);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/debts/${debtId}`, {
+      const res = await fetch(`${getApiUrl()}/api/debts/${debtId}`, {
         method: 'DELETE'
       });
       if (!res.ok) throw new Error('Failed to delete debt');
