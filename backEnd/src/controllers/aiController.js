@@ -159,20 +159,24 @@ exports.analyzeProductImage = async (req, res) => {
     return res.status(400).json({ message: 'A valid base64 image is required.' });
   }
 
-  const apiKey = process.env.NVIDIA_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ message: 'NVIDIA_API_KEY is not configured in the server.' });
+  const baiApiKey = process.env.BAI_API_KEY || process.env.GLM_API_KEY;
+  const nvidiaApiKey = process.env.NVIDIA_API_KEY;
+
+  if (!baiApiKey && !nvidiaApiKey) {
+    return res.status(500).json({ message: 'No AI Vision API key (BAI_API_KEY or NVIDIA_API_KEY) is configured.' });
   }
 
   const visionPrompt = `You are an expert electronics product analyst with deep knowledge of smartphones, tablets, wearables, and accessories.
 
 Look at this product image carefully and:
 1. Identify the exact device model (brand, model name, variant if visible)
-2. Generate a comprehensive technical spec sheet
+2. Identify the device category (one of: phone, feature-phone, tablet, watch, headphones, charger, cable, case, screen-protector)
+3. Generate a comprehensive technical spec sheet
 
 Return your response in this EXACT plain text format with no markdown, no asterisks, no headers:
 
 PRODUCT_NAME: <exact identified model name, e.g. "Samsung Galaxy S24 Ultra">
+CATEGORY: <category code>
 ---SPECS---
 Display Type: <value>
 Display Size: <value>
@@ -182,8 +186,6 @@ OS: <value>
 Chipset: <value>
 CPU: <value>
 GPU: <value>
-RAM: <value>
-Storage: <value>
 Main Camera: <value>
 Camera Features: <value>
 Selfie Camera: <value>
@@ -203,75 +205,115 @@ Weight: <value>
 If you cannot identify the exact model, make your best estimate based on visible design elements. Never leave a field blank — use "N/A" if truly unknown.`;
 
   try {
-    const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey.trim()}`
-      },
-      body: JSON.stringify({
-        model: 'meta/llama-3.2-90b-vision-instruct',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: visionPrompt
-              },
-              {
-                type: 'image_url',
-                image_url: { url: imageBase64 }
-              }
-            ]
-          }
-        ],
-        temperature: 0.2,
-        max_tokens: 1024
-      })
-    });
+    let rawText = '';
 
-    if (!response.ok) {
-      const errBody = await response.text();
-      const error = new Error(`NVIDIA vision request failed with status ${response.status}: ${errBody}`);
-      error.status = response.status;
-      throw error;
+    // 1. Try B.AI GLM-5.3-Flash Vision API first
+    if (baiApiKey) {
+      try {
+        const response = await fetch('https://api.b.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${baiApiKey.trim()}`
+          },
+          body: JSON.stringify({
+            model: 'glm-5.3-flash',
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: visionPrompt },
+                  { type: 'image_url', image_url: { url: imageBase64 } }
+                ]
+              }
+            ],
+            temperature: 0.2
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          rawText = (data.choices?.[0]?.message?.content || '').trim();
+        } else {
+          console.warn('[B.AI Vision Error]', response.status, (await response.text()).slice(0, 150));
+        }
+      } catch (baiErr) {
+        console.warn('[B.AI Vision Exception]', baiErr.message);
+      }
     }
 
-    const data = await response.json();
-    const rawText = (data.choices?.[0]?.message?.content || '').trim();
+    // 2. Fallback to NVIDIA Vision API if B.AI returned nothing
+    if (!rawText && nvidiaApiKey) {
+      const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${nvidiaApiKey.trim()}`
+        },
+        body: JSON.stringify({
+          model: 'meta/llama-3.2-90b-vision-instruct',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: visionPrompt },
+                { type: 'image_url', image_url: { url: imageBase64 } }
+              ]
+            }
+          ],
+          temperature: 0.2,
+          max_tokens: 1024
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        rawText = (data.choices?.[0]?.message?.content || '').trim();
+      }
+    }
+
+    if (!rawText) {
+      throw new Error('Could not analyze the image. Please verify your API key or try another photo.');
+    }
+
+    // Strip any markdown tags or thinking tokens
+    rawText = rawText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 
     // Parse PRODUCT_NAME
     const nameMatch = rawText.match(/PRODUCT_NAME:\s*(.+)/i);
     const productName = nameMatch ? nameMatch[1].trim() : '';
 
+    // Parse CATEGORY
+    const catMatch = rawText.match(/CATEGORY:\s*(.+)/i);
+    let category = catMatch ? catMatch[1].trim().toLowerCase() : 'phone';
+    const validCategories = ['phone', 'feature-phone', 'tablet', 'watch', 'headphones', 'charger', 'cable', 'case', 'screen-protector'];
+    if (!validCategories.includes(category)) {
+      category = 'phone';
+    }
+
     // Parse specs block
     const specsPart = rawText.split('---SPECS---')[1] || '';
-    const specsRaw = (specsPart.split('---DESCRIPTION---')[0] || '').trim();
+    let specsRaw = (specsPart.split('---DESCRIPTION---')[0] || '').trim();
+
+    // Filter out auto-generated RAM/Storage lines and prepend blank RAM & Storage keys for user entry
+    specsRaw = specsRaw
+      .split('\n')
+      .filter((line) => {
+        const lower = line.toLowerCase().trim();
+        return !lower.startsWith('ram:') && !lower.startsWith('storage:') && !lower.startsWith('category:');
+      })
+      .join('\n');
+
+    specsRaw = `RAM: \nStorage: \n${specsRaw}`;
 
     // Parse description block
     const descPart = rawText.split('---DESCRIPTION---')[1] || '';
     const description = descPart.trim();
 
-    res.status(200).json({ productName, specs: specsRaw, description });
+    res.status(200).json({ productName, category, specs: specsRaw, description });
   } catch (err) {
     console.error('[AI Vision Error]', err.message);
-
-    if (err.status === 429) {
-      return res.status(429).json({
-        message: 'AI quota exceeded. Please wait a moment and try again.',
-        error: err.message
-      });
-    }
-
-    if (err.status === 401 || err.status === 403) {
-      return res.status(401).json({
-        message: 'Invalid NVIDIA API key configured on the server.',
-        error: err.message
-      });
-    }
-
-    res.status(500).json({ message: 'Failed to analyze image. Check API key or try again.', error: err.message });
+    res.status(500).json({ message: err.message || 'Failed to analyze image.', error: err.message });
   }
 };
 
