@@ -8,7 +8,7 @@ export const getApiUrl = () => {
     const hostname = window.location.hostname;
     // Production domain & Vercel
     if (hostname.includes('midouphone.tech') || hostname.includes('vercel.app')) {
-      return 'https://midou-phone-api-hefrdbfmcahefhtz.spaincentral-01.azurewebsites.net';
+      return 'https://midou-phone-backend.onrender.com';
     }
     // Local development from mobile on same Wi-Fi network (e.g. 192.168.1.X)
     if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
