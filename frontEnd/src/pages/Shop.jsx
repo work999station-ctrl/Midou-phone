@@ -212,62 +212,6 @@ export default function Shop() {
     }
   };
 
-  // AI Photo Analysis using GLM-5.3-Flash
-  const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false);
-  const [photoAnalysisSuccess, setPhotoAnalysisSuccess] = useState(false);
-  const [photoAnalysisError, setPhotoAnalysisError] = useState(null);
-
-  const handleAnalyzePhoto = async (customImageBase64) => {
-    const targetImage = customImageBase64 || (newProduct.images && newProduct.images[0]);
-    if (!targetImage) {
-      setImageError('Please select or upload a product photo first.');
-      return;
-    }
-
-    setIsAnalyzingPhoto(true);
-    setPhotoAnalysisError(null);
-    setPhotoAnalysisSuccess(false);
-
-    try {
-      const response = await fetch(getApiUrl() + '/api/ai/analyze-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: targetImage })
-      });
-
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.message || 'Failed to identify product from photo');
-      }
-
-      const data = await response.json();
-      const detectedName = data.productName || '';
-      const detectedCategory = data.category || 'phone';
-      const detectedSpecs = data.specs || '';
-      const detectedDesc = data.description || '';
-
-      setNewProduct((prev) => ({
-        ...prev,
-        name: detectedName || prev.name,
-        category: detectedCategory || prev.category,
-        specs: detectedSpecs || prev.specs,
-        description: detectedDesc || prev.description
-      }));
-
-      if (detectedSpecs) {
-        setParsedSpecs(parseSpecsText(detectedSpecs));
-      }
-
-      setPhotoAnalysisSuccess(true);
-      setHasAiAutoFilled(true);
-    } catch (err) {
-      console.error('[AI Photo Analysis Error]', err.message);
-      setPhotoAnalysisError(err.message);
-    } finally {
-      setIsAnalyzingPhoto(false);
-    }
-  };
-
   // Parse specs string into [{key, value}] for card rendering
   const parseSpecsText = (text) => {
     if (!text || !text.trim()) return [];
@@ -1492,40 +1436,6 @@ export default function Shop() {
                       className="hidden"
                     />
                   </label>
-                )}
-
-                {/* AI Photo Identification Button with GLM-5.3-Flash */}
-                {newProduct.images.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => handleAnalyzePhoto()}
-                    disabled={isAnalyzingPhoto}
-                    className="mt-2.5 w-full bg-gradient-to-r from-teal-600 via-cyan-600 to-indigo-600 hover:from-teal-500 hover:to-indigo-500 text-white py-2 px-3.5 rounded-xl font-bold text-xs shadow-lg shadow-cyan-600/20 flex items-center justify-center gap-2 border-none cursor-pointer transition-all active:scale-98 disabled:opacity-50"
-                  >
-                    {isAnalyzingPhoto ? (
-                      <>
-                        <span className="animate-spin border-2 border-white border-t-transparent rounded-full w-4 h-4"></span>
-                        <span>GLM-5.3-Flash AI Identifying Device from Photo...</span>
-                      </>
-                    ) : photoAnalysisSuccess ? (
-                      <>
-                        <span className="material-symbols-outlined text-[18px] text-emerald-300">verified</span>
-                        <span>Device & Specs Identified! Click to Re-Scan</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="material-symbols-outlined text-[18px]">document_scanner</span>
-                        <span>✨ AI Auto-Identify Device, Category & Specs from Photo</span>
-                      </>
-                    )}
-                  </button>
-                )}
-
-                {photoAnalysisError && (
-                  <div className="mt-2 bg-red-500/15 border border-red-500/30 text-red-300 px-3 py-2 rounded-lg text-xs flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[14px]">error</span>
-                    {photoAnalysisError}
-                  </div>
                 )}
 
                 {imageError && (
