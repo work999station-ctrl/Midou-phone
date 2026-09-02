@@ -159,11 +159,11 @@ exports.analyzeProductImage = async (req, res) => {
     return res.status(400).json({ message: 'A valid base64 image is required.' });
   }
 
-  const baiApiKey = process.env.BAI_API_KEY || process.env.GLM_API_KEY;
+  const baiApiKey = process.env.BAI_API_KEY || process.env.GLM_API_KEY || 'sk-1emdv6jjrvz7il7q0xj40ofsgt4uwmxx';
   const nvidiaApiKey = process.env.NVIDIA_API_KEY;
 
   if (!baiApiKey && !nvidiaApiKey) {
-    return res.status(500).json({ message: 'No AI Vision API key (BAI_API_KEY or NVIDIA_API_KEY) is configured.' });
+    return res.status(500).json({ message: 'No AI Vision API key is configured.' });
   }
 
   const visionPrompt = `You are an expert electronics product analyst with deep knowledge of smartphones, tablets, wearables, and accessories.
@@ -207,17 +207,62 @@ If you cannot identify the exact model, make your best estimate based on visible
   try {
     let rawText = '';
 
-    // 1. Try B.AI GLM-5.3-Flash Vision API first
+    // 1. Try B.AI Vision models (glm-5.3-flash, deepseek-v4-flash-vision-exp)
     if (baiApiKey) {
+      const baiModels = ['glm-5.3-flash', 'deepseek-v4-flash-vision-exp'];
+      for (const model of baiModels) {
+        if (rawText) break;
+        try {
+          const response = await fetch('https://api.b.ai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${baiApiKey.trim()}`
+            },
+            body: JSON.stringify({
+              model,
+              messages: [
+                {
+                  role: 'user',
+                  content: [
+                    { type: 'text', text: visionPrompt },
+                    { type: 'image_url', image_url: { url: imageBase64 } }
+                  ]
+                }
+              ],
+              temperature: 0.2,
+              max_tokens: 1500
+            }),
+            signal: AbortSignal.timeout(30000)
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const content = (data.choices?.[0]?.message?.content || '').trim();
+            if (content && content.length > 20) {
+              rawText = content;
+              break;
+            }
+          } else {
+            console.warn(`[B.AI Vision Error - ${model}]`, response.status, (await response.text()).slice(0, 150));
+          }
+        } catch (baiErr) {
+          console.warn(`[B.AI Vision Exception - ${model}]`, baiErr.message);
+        }
+      }
+    }
+
+    // 2. Fallback to NVIDIA Vision API if B.AI returned nothing
+    if (!rawText && nvidiaApiKey) {
       try {
-        const response = await fetch('https://api.b.ai/v1/chat/completions', {
+        const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${baiApiKey.trim()}`
+            'Authorization': `Bearer ${nvidiaApiKey.trim()}`
           },
           body: JSON.stringify({
-            model: 'glm-5.3-flash',
+            model: 'meta/llama-3.2-90b-vision-instruct',
             messages: [
               {
                 role: 'user',
@@ -227,48 +272,18 @@ If you cannot identify the exact model, make your best estimate based on visible
                 ]
               }
             ],
-            temperature: 0.2
-          })
+            temperature: 0.2,
+            max_tokens: 1024
+          }),
+          signal: AbortSignal.timeout(20000)
         });
 
         if (response.ok) {
           const data = await response.json();
           rawText = (data.choices?.[0]?.message?.content || '').trim();
-        } else {
-          console.warn('[B.AI Vision Error]', response.status, (await response.text()).slice(0, 150));
         }
-      } catch (baiErr) {
-        console.warn('[B.AI Vision Exception]', baiErr.message);
-      }
-    }
-
-    // 2. Fallback to NVIDIA Vision API if B.AI returned nothing
-    if (!rawText && nvidiaApiKey) {
-      const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${nvidiaApiKey.trim()}`
-        },
-        body: JSON.stringify({
-          model: 'meta/llama-3.2-90b-vision-instruct',
-          messages: [
-            {
-              role: 'user',
-              content: [
-                { type: 'text', text: visionPrompt },
-                { type: 'image_url', image_url: { url: imageBase64 } }
-              ]
-            }
-          ],
-          temperature: 0.2,
-          max_tokens: 1024
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        rawText = (data.choices?.[0]?.message?.content || '').trim();
+      } catch (nvErr) {
+        console.warn('[NVIDIA Vision Exception]', nvErr.message);
       }
     }
 
