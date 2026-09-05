@@ -16,7 +16,8 @@ exports.recordTransaction = async (req, res) => {
       category = 'other', // For new products
       supplierName,
       clientName,
-      notes
+      notes,
+      date
     } = req.body;
 
     if (!['sale', 'purchase', 'canceled'].includes(type)) {
@@ -25,6 +26,22 @@ exports.recordTransaction = async (req, res) => {
 
     if (!description || totalPrice == null) {
       return res.status(400).json({ message: 'Description and Total Price are required.' });
+    }
+
+    // Optional custom transaction date (YYYY-MM-DD from the New Transaction form).
+    // Parsed as a local calendar date, keeping the current time-of-day so the
+    // record still sorts naturally among same-day transactions. When omitted,
+    // the model default (now) applies. Dashboard and ledger filters use
+    // createdAt, so back-dated transactions land in the correct day/week.
+    let transactionDate;
+    if (date) {
+      const raw = String(date).trim();
+      let parsed = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? new Date(`${raw}T00:00:00`) : new Date(raw);
+      if (!isNaN(parsed.getTime())) {
+        const now = new Date();
+        parsed.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), 0);
+        transactionDate = parsed;
+      }
     }
 
     let finalProductId = productId ? productId : undefined;
@@ -69,7 +86,8 @@ exports.recordTransaction = async (req, res) => {
       updateStock,
       supplierName,
       clientName,
-      notes
+      notes,
+      createdAt: transactionDate
     });
 
     res.status(201).json(transaction);

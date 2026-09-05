@@ -65,6 +65,10 @@ export default function AdminTransactions() {
   ];
 
   // New Transaction Form State
+  const todayStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
   const [formData, setFormData] = useState({
     type: 'purchase',
     description: '',
@@ -73,7 +77,8 @@ export default function AdminTransactions() {
     updateStock: false,
     isNewProduct: false,
     productId: '',
-    category: 'other'
+    category: 'other',
+    date: todayStr()
   });
 
   useEffect(() => {
@@ -405,10 +410,11 @@ export default function AdminTransactions() {
           description: formData.description.trim(),
           totalPrice: Number(formData.totalPrice),
           quantity: 1,
-          updateStock: false
+          updateStock: false,
+          date: formData.date
         })
       });
-      
+
       setFormData({
         type: 'purchase',
         description: '',
@@ -417,7 +423,8 @@ export default function AdminTransactions() {
         updateStock: false,
         isNewProduct: false,
         productId: '',
-        category: 'other'
+        category: 'other',
+        date: todayStr()
       });
       fetchTransactions();
       fetchProducts();
@@ -1003,6 +1010,21 @@ export default function AdminTransactions() {
                     value={formData.description}
                     onChange={e => setFormData({...formData, description: e.target.value})}
                     className="w-full bg-transparent border-none outline-none text-white text-sm placeholder:text-gray-600 pt-1"
+                  />
+                </div>
+
+                {/* Date */}
+                <div className="bg-surface-container/40 backdrop-blur rounded-2xl border border-white/8 p-4 space-y-1">
+                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[14px] text-primary">calendar_today</span>
+                    {t('date', 'Date')}
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.date}
+                    onChange={e => setFormData({...formData, date: e.target.value})}
+                    className="w-full bg-transparent border-none outline-none text-white text-sm custom-date-picker pt-1 cursor-pointer"
+                    style={{ colorScheme: 'dark' }}
                   />
                 </div>
 
