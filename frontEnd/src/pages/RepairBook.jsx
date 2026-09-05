@@ -79,6 +79,7 @@ export default function RepairBook() {
   // AI Image Recognition State
   const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
   const imageInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
 
 
   // Fetch pricing matrix from backend
@@ -158,19 +159,57 @@ export default function RepairBook() {
     setErrors((prev) => ({ ...prev, brand: null, model: null }));
   };
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
+  // Compress camera/gallery images client-side so the base64 payload stays
+  // well under the backend's 5mb JSON body limit (raw phone camera shots
+  // are often 3-8mb). Backend further resizes to 400x400 with Jimp.
+  const compressImageFile = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxDim = 800;
+          let width = img.width;
+          let height = img.height;
+          if (width > height && width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else if (height >= width && height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.6));
+        };
+        img.onerror = reject;
+        img.src = event.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files && e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setBookingData({ deviceImage: event.target.result });
-      // Reset file input
+    try {
+      const compressedDataUrl = await compressImageFile(file);
+      setBookingData({ deviceImage: compressedDataUrl });
+    } catch (err) {
+      console.error('Image processing failed:', err);
+    } finally {
+      // Reset inputs so selecting/picturing the same image again still fires onChange
       if (imageInputRef.current) {
         imageInputRef.current.value = '';
       }
-    };
-    reader.readAsDataURL(file);
+      if (cameraInputRef.current) {
+        cameraInputRef.current.value = '';
+      }
+    }
   };
 
   const handleModelChange = (e) => {
@@ -746,44 +785,65 @@ export default function RepairBook() {
             </div>
 
             <div className="space-y-6">
-                {/* Image Upload UI */}
+                {/* Image Capture UI */}
                 <div className="mt-4">
                   <label className="block font-label-sm text-label-sm text-on-surface-variant pl-1 mb-2">
                     {t('attachImageOptional', 'Attach an image of your device (optional)')}
                   </label>
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      ref={imageInputRef}
-                      onChange={handleImageUpload}
-                      className="hidden"
-                      id="ai-phone-image"
-                    />
-                    <label
-                      htmlFor="ai-phone-image"
-                      className="w-full flex flex-col items-center justify-center gap-2 py-4 px-4 border border-dashed rounded-lg transition-all cursor-pointer border-outline-variant/60 hover:border-secondary hover:bg-white/5 text-on-surface-variant hover:text-secondary overflow-hidden"
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={imageInputRef}
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    id="device-image-gallery"
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    ref={cameraInputRef}
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    id="device-image-camera"
+                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Take a Photo — opens the device camera directly */}
+                    <button
+                      type="button"
+                      onClick={() => cameraInputRef.current && cameraInputRef.current.click()}
+                      className="w-full flex flex-col items-center justify-center gap-2 py-4 px-4 border border-dashed rounded-lg transition-all cursor-pointer border-secondary/50 bg-secondary/5 hover:border-secondary hover:bg-secondary/10 text-secondary"
                     >
-                      {bookingData.deviceImage ? (
-                        <>
-                          <div className="w-full max-w-[200px] h-32 rounded-md overflow-hidden border border-white/10 mb-2 relative group bg-black/20">
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                              <span className="material-symbols-outlined text-white text-3xl">edit</span>
-                            </div>
-                            <img src={bookingData.deviceImage} alt="Device Preview" className="w-full h-full object-contain relative z-0" />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-label-md">{t('clickToChangeImage', 'Click to change image')}</span>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <span className="material-symbols-outlined text-[20px]">add_a_photo</span>
-                          <span className="font-label-md">{t('uploadPhoneImage', 'Upload Phone Image')}</span>
-                        </div>
-                      )}
-                    </label>
+                      <span className="material-symbols-outlined text-[24px]">photo_camera</span>
+                      <span className="font-label-md">{t('takePhoto', 'Take a Photo')}</span>
+                    </button>
+                    {/* Upload from Gallery */}
+                    <button
+                      type="button"
+                      onClick={() => imageInputRef.current && imageInputRef.current.click()}
+                      className="w-full flex flex-col items-center justify-center gap-2 py-4 px-4 border border-dashed rounded-lg transition-all cursor-pointer border-outline-variant/60 hover:border-secondary hover:bg-white/5 text-on-surface-variant hover:text-secondary"
+                    >
+                      <span className="material-symbols-outlined text-[24px]">upload_file</span>
+                      <span className="font-label-md">{t('chooseFromGallery', 'Upload from Gallery')}</span>
+                    </button>
                   </div>
+
+                  {bookingData.deviceImage && (
+                    <div className="mt-3 flex items-center gap-3 p-2 rounded-lg bg-white/5 border border-white/10">
+                      <div className="w-16 h-16 rounded-md overflow-hidden border border-white/10 shrink-0 bg-black/20">
+                        <img src={bookingData.deviceImage} alt="Device Preview" className="w-full h-full object-contain" />
+                      </div>
+                      <p className="font-label-sm text-label-sm text-on-surface-variant flex-1">{t('deviceImageAttached', 'Attached')}</p>
+                      <button
+                        type="button"
+                        onClick={() => setBookingData({ deviceImage: '' })}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all font-label-sm text-label-sm cursor-pointer shrink-0"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">delete</span>
+                        {t('removeImage', 'Remove')}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
